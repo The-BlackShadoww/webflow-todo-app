@@ -1,0 +1,16 @@
+.flowappz-todo-runtime-dark {
+  background-color: #171717 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+.flowappz-todo-runtime-dark input[type="text"] {
+  background-color: #262626 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+[flowappz-todo-item="true"] [contenteditable="true"]:focus {
+  outline: 2px solid rgba(0, 106, 204, 0.35);
+  outline-offset: 2px;
+}

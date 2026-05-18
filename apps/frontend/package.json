@@ -1,0 +1,32 @@
+{
+  "name": "todo-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --config vite-dev.config.mjs",
+    "build": "npm install && tsc && vite build && node ./src/modify-html.cjs && webflow extension bundle && node cmd/rename-bundle-zip-file.js",
+    "build:staging": "npm install && tsc && vite build --mode staging && node ./src/modify-html.cjs && webflow extension bundle && BUILD_MODE=staging node cmd/rename-bundle-zip-file.js",
+    "build:production": "npm install && tsc && vite build --mode production && node ./src/modify-html.cjs && webflow extension bundle && BUILD_MODE=production node cmd/rename-bundle-zip-file.js"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.0.3",
+    "@webflow/designer-extension-typings": "*",
+    "@xatom/wf-app-hot-reload": "^1.0.5",
+    "axios": "^1.6.2",
+    "lucide-react": "^0.468.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "autoprefixer": "^10.4.16",
+    "dotenv": "^16.4.5",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.3.2",
+    "vite": "^4.4.5"
+  }
+}

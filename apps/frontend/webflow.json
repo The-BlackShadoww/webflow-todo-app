@@ -1,0 +1,11 @@
+{
+  "name": "Todo App",
+  "size": "large",
+  "telemetry": {
+    "global": {
+      "allowTelemetry": true,
+      "lastPrompted": 1779113040856,
+      "version": "1.21.0"
+    }
+  }
+}
