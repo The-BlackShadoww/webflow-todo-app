@@ -17,13 +17,14 @@ export default function CopyElementView() {
       // approach is the only way to reliably set a custom MIME type that
       // Webflow's paste handler can read via event.clipboardData.getData().
       function onCopy(event: ClipboardEvent) {
-        event.clipboardData?.setData("application/json", json);
         event.preventDefault();
+        event.clipboardData?.setData("application/json", json);
+        event.clipboardData?.setData("text/plain", json);
       }
 
-      document.addEventListener("copy", onCopy);
+      document.addEventListener("copy", onCopy, true);
       document.execCommand("copy");
-      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("copy", onCopy, true);
 
       setCopied(true);
       window._myWebflow.notify({
@@ -55,7 +56,7 @@ export default function CopyElementView() {
           <li>1. Click Copy Todo Element.</li>
           <li>2. Open Webflow Designer.</li>
           <li>
-            3. Select the section or container where the list should appear.
+            3. Select a Div block or container on the canvas (not a Component).
           </li>
           <li>4. Press Ctrl+V or Cmd+V.</li>
         </ol>
