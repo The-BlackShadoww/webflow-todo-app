@@ -153,17 +153,17 @@ export function buildTodoWebflowTemplate(settings: TodoSettings) {
       nodes: [
         {
           _id: ids.section,
-          type: "Section",
+          type: "Block",
           tag: "section",
           classes: [classes.section],
           children: [ids.root],
           data: {
+            text: false,
             tag: "section",
             attr: { id: "" },
             xattr: [],
             search: { exclude: false },
             visibility: { conditions: [] },
-            grid: { type: "section" },
           },
         },
         {

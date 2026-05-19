@@ -7,22 +7,23 @@ export default function CopyElementView() {
   const { settings } = useAppContext();
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     try {
       const templateJson = buildTodoWebflowTemplate(settings);
       const json = JSON.stringify(templateJson);
 
-      // navigator.clipboard.write() with the "web " MIME prefix is required for
-      // custom types in Chrome 104+. Webflow Designer's paste handler reads
-      // "web application/json" from the async Clipboard API.
-      // The legacy document.execCommand("copy") silently fails in extension iframes.
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "web application/json": new Blob([json], {
-            type: "application/json",
-          }),
-        }),
-      ]);
+      // Webflow Designer's paste handler reads "application/json" from the
+      // synchronous ClipboardEvent.clipboardData. The execCommand("copy")
+      // approach is the only way to reliably set a custom MIME type that
+      // Webflow's paste handler can read via event.clipboardData.getData().
+      function onCopy(event: ClipboardEvent) {
+        event.clipboardData?.setData("application/json", json);
+        event.preventDefault();
+      }
+
+      document.addEventListener("copy", onCopy);
+      document.execCommand("copy");
+      document.removeEventListener("copy", onCopy);
 
       setCopied(true);
       window._myWebflow.notify({
