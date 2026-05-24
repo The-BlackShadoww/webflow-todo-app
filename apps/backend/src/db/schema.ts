@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, serial, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 export type TodoTheme = "light" | "dark" | "system";
 
@@ -39,6 +39,21 @@ export const todoSettings = pgTable("todo_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [index("idx_todo_settings_site_id").on(t.siteId)]);
 
+
+export const todoTasks = pgTable("todo_tasks", {
+  id: serial("id").primaryKey(),
+  siteId: varchar("site_id").notNull(),
+  listId: varchar("list_id").notNull(),
+  taskId: varchar("task_id").notNull(),
+  text: text("text").notNull(),
+  completed: boolean("completed").notNull().default(false),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_todo_tasks_site_list").on(t.siteId, t.listId),
+  uniqueIndex("idx_todo_tasks_unique_task").on(t.siteId, t.listId, t.taskId),
+]);
 export const cdnReleases = pgTable("cdn_releases", {
   id: serial("id").primaryKey(),
   version: varchar("version").notNull().unique(),
@@ -55,3 +70,4 @@ export const sitesRelations = relations(sites, ({ one }) => ({
   user: one(users, { fields: [sites.userId], references: [users.id] }),
   todoSettings: one(todoSettings, { fields: [sites.siteId], references: [todoSettings.siteId] }),
 }));
+
