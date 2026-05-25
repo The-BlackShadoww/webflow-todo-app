@@ -212,6 +212,7 @@ function createTaskNodes(
 }
 
 export function buildTodoWebflowTemplate(settings: TodoSettings) {
+  const todoListId = crypto.randomUUID();
   const tasks = settings.initialTasks.length
     ? settings.initialTasks
     : [{ id: "task-empty", text: "New task", completed: false }];
@@ -303,6 +304,7 @@ export function buildTodoWebflowTemplate(settings: TodoSettings) {
     {
       attr: { id: "flowappz-todo-root" },
       xattr: [
+        { name: "flowappz-todo-list-id", value: todoListId },
         { name: "flowappz-todo-theme", value: settings.theme },
         { name: "flowappz-todo-allow-add", value: String(settings.allowAdd) },
         { name: "flowappz-todo-allow-edit", value: String(settings.allowEdit) },
@@ -350,3 +352,5 @@ export function buildTodoWebflowTemplate(settings: TodoSettings) {
     },
   };
 }
+
+

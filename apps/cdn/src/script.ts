@@ -2,6 +2,7 @@ type TodoTask = {
   id: string;
   text: string;
   completed: boolean;
+  position: number;
 };
 
 type TodoOptions = {
@@ -13,7 +14,13 @@ type TodoOptions = {
   theme: "light" | "dark" | "system";
 };
 
+type TodoIdentity = {
+  siteId: string;
+  listId: string;
+};
+
 const LOG_TAG = "[todo-cdn]";
+const API_BASE_URL = `${__BACKEND_URL__}/api`;
 const SELECTORS = {
   root: "flowappz-todo-root",
   form: "flowappz-todo-form",
@@ -48,13 +55,16 @@ function readOptions(root: HTMLElement): TodoOptions {
   };
 }
 
-function getStorageKey(root: HTMLElement): string {
-  const siteId =
-    document.documentElement.getAttribute("data-wf-site") || "unknown-site";
-  const rootIndex = Array.from(
-    document.querySelectorAll(`#${SELECTORS.root}`),
-  ).indexOf(root);
-  return `flowappz-todo:${siteId}:${rootIndex}`;
+function readIdentity(root: HTMLElement): TodoIdentity | null {
+  const siteId = document.documentElement.getAttribute("data-wf-site") || "";
+  const listId = root.getAttribute("flowappz-todo-list-id") || "default";
+
+  if (!siteId) {
+    console.error(LOG_TAG, "Missing Webflow site id on html[data-wf-site]");
+    return null;
+  }
+
+  return { siteId, listId };
 }
 
 function getTaskText(item: HTMLElement): string {
@@ -87,36 +97,78 @@ function readInitialTasks(list: HTMLElement): TodoTask[] {
       completed:
         checkbox?.checked ||
         item.getAttribute("flowappz-todo-completed") === "true",
+      position: index,
     };
   });
 }
 
-function loadTasks(
-  root: HTMLElement,
-  list: HTMLElement,
-  options: TodoOptions,
-): TodoTask[] {
-  const initialTasks = readInitialTasks(list);
-  if (!options.persistInBrowser) return initialTasks;
+function normalizeApiTasks(tasks: unknown): TodoTask[] {
+  if (!Array.isArray(tasks)) return [];
 
-  try {
-    const raw = localStorage.getItem(getStorageKey(root));
-    if (!raw) return initialTasks;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return initialTasks;
-    return parsed.filter((task) => typeof task?.text === "string");
-  } catch (error) {
-    console.warn(LOG_TAG, "Could not read saved tasks", error);
-    return initialTasks;
-  }
+  const normalized = tasks
+    .map((task, index) => {
+      const raw = task as Partial<TodoTask> & { taskId?: string };
+      const id = typeof raw.id === "string" ? raw.id : raw.taskId;
+      const text = typeof raw.text === "string" ? raw.text.trim() : "";
+      if (!id || !text) return null;
+
+      return {
+        id,
+        text,
+        completed: raw.completed === true,
+        position: typeof raw.position === "number" ? raw.position : index,
+      };
+    });
+
+  return normalized.filter((task): task is TodoTask => task !== null);
 }
 
-function saveTasks(root: HTMLElement, options: TodoOptions, tasks: TodoTask[]) {
-  if (!options.persistInBrowser) return;
+async function fetchDatabaseTasks(identity: TodoIdentity): Promise<TodoTask[]> {
+  const params = new URLSearchParams({
+    siteId: identity.siteId,
+    listId: identity.listId,
+  });
+  const response = await fetch(`${API_BASE_URL}/todo/tasks?${params.toString()}`);
+  if (!response.ok) throw new Error(`Failed to load tasks: ${response.status}`);
+
+  const payload = await response.json();
+  return normalizeApiTasks(payload.data);
+}
+
+async function saveDatabaseTasks(identity: TodoIdentity, tasks: TodoTask[]): Promise<TodoTask[]> {
+  const response = await fetch(`${API_BASE_URL}/todo/tasks`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      siteId: identity.siteId,
+      listId: identity.listId,
+      tasks: tasks.map((task, index) => ({
+        taskId: task.id,
+        text: task.text,
+        completed: task.completed,
+        position: index,
+      })),
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Failed to save tasks: ${response.status}`);
+
+  const payload = await response.json();
+  return normalizeApiTasks(payload.data);
+}
+
+async function loadTasks(identity: TodoIdentity, list: HTMLElement): Promise<TodoTask[]> {
+  const initialTasks = readInitialTasks(list);
+
   try {
-    localStorage.setItem(getStorageKey(root), JSON.stringify(tasks));
+    const databaseTasks = await fetchDatabaseTasks(identity);
+    if (databaseTasks.length) return databaseTasks;
+
+    if (!initialTasks.length) return [];
+    return saveDatabaseTasks(identity, initialTasks);
   } catch (error) {
-    console.warn(LOG_TAG, "Could not save tasks", error);
+    console.warn(LOG_TAG, "Could not load database tasks. Falling back to pasted tasks.", error);
+    return initialTasks;
   }
 }
 
@@ -149,7 +201,7 @@ function prepareTemplate(list: HTMLElement): HTMLElement {
   return clone;
 }
 
-function renderTodo(root: HTMLElement) {
+async function renderTodo(root: HTMLElement) {
   const form = root.querySelector<HTMLFormElement>(`#${SELECTORS.form}`);
   const input = root.querySelector<HTMLInputElement>(`#${SELECTORS.input}`);
   const listElement = root.querySelector<HTMLElement>(`#${SELECTORS.list}`);
@@ -160,10 +212,14 @@ function renderTodo(root: HTMLElement) {
     return;
   }
 
+  const parsedIdentity = readIdentity(root);
+  if (!parsedIdentity) return;
+  const identity: TodoIdentity = parsedIdentity;
+
   const list = listElement;
   const options = readOptions(root);
   const template = prepareTemplate(list);
-  let tasks = loadTasks(root, list, options);
+  let tasks = readInitialTasks(list);
 
   if (options.theme === "dark")
     root.classList.add("flowappz-todo-runtime-dark");
@@ -171,8 +227,13 @@ function renderTodo(root: HTMLElement) {
 
   function commit(nextTasks: TodoTask[]) {
     tasks = nextTasks;
-    saveTasks(root, options, tasks);
     paint();
+    saveDatabaseTasks(identity, tasks)
+      .then((savedTasks) => {
+        tasks = savedTasks;
+        paint();
+      })
+      .catch((error) => console.warn(LOG_TAG, "Could not save database tasks", error));
   }
 
   function paint() {
@@ -253,10 +314,15 @@ function renderTodo(root: HTMLElement) {
     const text = input.value.trim();
     if (!text) return;
 
-    commit([...tasks, { id: `task-${Date.now()}`, text, completed: false }]);
+    commit([
+      ...tasks,
+      { id: `task-${Date.now()}`, text, completed: false, position: tasks.length },
+    ]);
     input.value = "";
   });
 
+  paint();
+  tasks = await loadTasks(identity, list);
   paint();
 }
 
@@ -266,7 +332,9 @@ function init() {
     `loaded version=${__CDN_VERSION__} backend=${__BACKEND_URL__}`,
   );
   const roots = document.querySelectorAll<HTMLElement>(`#${SELECTORS.root}`);
-  roots.forEach(renderTodo);
+  roots.forEach((root) => {
+    renderTodo(root).catch((error) => console.error(LOG_TAG, "Todo render failed", error));
+  });
 }
 
 if (document.readyState === "loading") {
@@ -274,3 +342,5 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
+
