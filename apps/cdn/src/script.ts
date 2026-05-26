@@ -220,16 +220,20 @@ async function renderTodo(root: HTMLElement) {
   const options = readOptions(root);
   const template = prepareTemplate(list);
   let tasks = readInitialTasks(list);
+  let saveRequestId = 0;
 
   if (options.theme === "dark")
     root.classList.add("flowappz-todo-runtime-dark");
   if (!options.allowAdd && form) form.style.display = "none";
 
   function commit(nextTasks: TodoTask[]) {
-    tasks = nextTasks;
+    const requestId = ++saveRequestId;
+    tasks = nextTasks.map((task, index) => ({ ...task, position: index }));
     paint();
+
     saveDatabaseTasks(identity, tasks)
       .then((savedTasks) => {
+        if (requestId !== saveRequestId) return;
         tasks = savedTasks;
         paint();
       })
@@ -342,5 +346,6 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
 
 
