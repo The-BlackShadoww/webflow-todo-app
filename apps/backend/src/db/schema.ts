@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 export type TodoTheme = "light" | "dark" | "system";
 
@@ -34,7 +34,6 @@ export const todoSettings = pgTable("todo_settings", {
   showCompleted: boolean("show_completed").notNull().default(true),
   persistInBrowser: boolean("persist_in_browser").notNull().default(true),
   theme: varchar("theme").notNull().default("system"),
-  initialTasks: jsonb("initial_tasks").$type<Array<{ id: string; text: string; completed: boolean }>>().notNull().default([]),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [index("idx_todo_settings_site_id").on(t.siteId)]);

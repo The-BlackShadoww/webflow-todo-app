@@ -4,12 +4,12 @@ import { useAppContext } from "@/contexts/AppContext";
 import { buildTodoWebflowTemplate } from "@/templates/todoTemplate";
 
 export default function CopyElementView() {
-  const { settings } = useAppContext();
+  const { settings, tasks } = useAppContext();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     try {
-      const templateJson = buildTodoWebflowTemplate(settings);
+      const templateJson = buildTodoWebflowTemplate(settings, tasks);
       const json = JSON.stringify(templateJson);
 
       // Webflow Designer's paste handler reads "application/json" from the
@@ -65,7 +65,7 @@ export default function CopyElementView() {
       <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
         <p className="text-[12px] text-white/45">Included tasks</p>
         <p className="mt-1 text-[22px] font-bold text-white">
-          {settings.initialTasks.length}
+          {tasks.length}
         </p>
       </div>
 

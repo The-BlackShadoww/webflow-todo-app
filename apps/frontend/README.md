@@ -6,8 +6,8 @@ This app is the Webflow Designer Extension for building and copying the todo ele
 
 1. Checks the current Webflow site through the backend.
 2. Sends unauthenticated sites through the Webflow OAuth install flow.
-3. Lets the user create starter todo tasks.
-4. Lets the user configure todo behavior.
+3. Lets the user create starter todo tasks (saved via `GET/PUT /api/todo/tasks` with `listId=default`).
+4. Lets the user configure todo behavior (saved via `/api/todo/settings`).
 5. Copies a Webflow-native `@webflow/XscpData` payload into the clipboard.
 6. The pasted element uses stable `flowappz-todo-*` IDs and attributes for the future CDN script.
 

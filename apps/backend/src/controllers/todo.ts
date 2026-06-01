@@ -21,9 +21,6 @@ export const saveSettings: RequestHandler = async (req, res) => {
     showCompleted: settings?.showCompleted ?? true,
     persistInBrowser: settings?.persistInBrowser ?? true,
     theme: settings?.theme ?? "system",
-    initialTasks: Array.isArray(settings?.initialTasks)
-      ? settings.initialTasks
-      : [],
   });
 
   return res.status(200).json({ success: true, data: saved });

@@ -8,20 +8,23 @@ function makeTask(text: string): TodoTask {
 }
 
 export default function TasksView() {
-  const { settings, saveSettings } = useAppContext();
+  const { tasks, saveTasks } = useAppContext();
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const updateTasks = async (initialTasks: TodoTask[]) => {
+  const updateTasks = async (nextTasks: TodoTask[]) => {
     setSaving(true);
-    await saveSettings({ ...settings, initialTasks });
-    setSaving(false);
+    try {
+      await saveTasks(nextTasks);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addTask = async () => {
     const text = draft.trim();
     if (!text) return;
-    await updateTasks([...settings.initialTasks, makeTask(text)]);
+    await updateTasks([...tasks, makeTask(text)]);
     setDraft("");
   };
 
@@ -30,7 +33,8 @@ export default function TasksView() {
       <div>
         <h1 className="text-[18px] font-bold text-white">Starter Tasks</h1>
         <p className="mt-1 text-[13px] text-white/50">
-          These tasks will be included in the pasted Webflow element.
+          These tasks are saved for this site and included in the pasted Webflow
+          element.
         </p>
       </div>
 
@@ -52,7 +56,7 @@ export default function TasksView() {
       </div>
 
       <div className="flex flex-col gap-2">
-        {settings.initialTasks.map((task) => (
+        {tasks.map((task) => (
           <div
             key={task.id}
             className="flex items-center gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2"
@@ -62,7 +66,7 @@ export default function TasksView() {
               checked={task.completed}
               onChange={(event) =>
                 updateTasks(
-                  settings.initialTasks.map((item) =>
+                  tasks.map((item) =>
                     item.id === task.id
                       ? { ...item, completed: event.target.checked }
                       : item,
@@ -75,7 +79,7 @@ export default function TasksView() {
               value={task.text}
               onChange={(event) =>
                 updateTasks(
-                  settings.initialTasks.map((item) =>
+                  tasks.map((item) =>
                     item.id === task.id
                       ? { ...item, text: event.target.value }
                       : item,
@@ -86,9 +90,7 @@ export default function TasksView() {
             />
             <button
               onClick={() =>
-                updateTasks(
-                  settings.initialTasks.filter((item) => item.id !== task.id),
-                )
+                updateTasks(tasks.filter((item) => item.id !== task.id))
               }
               className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white"
               title="Delete task"
@@ -102,7 +104,7 @@ export default function TasksView() {
       <p className="text-[12px] text-white/35">
         {saving
           ? "Saving..."
-          : "Changes are saved to the backend for this Webflow site."}
+          : "Changes are saved for this Webflow site."}
       </p>
     </section>
   );

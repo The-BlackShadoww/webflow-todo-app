@@ -2,6 +2,7 @@ export type TodoTask = {
   id: string;
   text: string;
   completed: boolean;
+  position?: number;
 };
 
 export type TodoSettings = {
@@ -11,7 +12,6 @@ export type TodoSettings = {
   showCompleted: boolean;
   persistInBrowser: boolean;
   theme: "light" | "dark" | "system";
-  initialTasks: TodoTask[];
 };
 
 export type WebflowSite = {

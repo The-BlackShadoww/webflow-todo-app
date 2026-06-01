@@ -215,6 +215,7 @@ Backend base: `http://localhost:3000/api`
 - `GET /webflow/callback` — OAuth redirect (browser only)
 - `GET /webflow/cdn-release/latest` — latest CDN release metadata
 - `GET /todo/settings/:siteId` / `POST /todo/settings` — per-site todo settings
+- `GET /todo/tasks` / `PUT /todo/tasks` — per-site tasks (Designer uses `listId=default`)
 
 See `apps/backend/README.md` for the full route list.
 

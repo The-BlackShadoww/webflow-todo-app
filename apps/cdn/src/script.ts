@@ -162,10 +162,7 @@ async function loadTasks(identity: TodoIdentity, list: HTMLElement): Promise<Tod
 
   try {
     const databaseTasks = await fetchDatabaseTasks(identity);
-    if (databaseTasks.length) return databaseTasks;
-
-    if (!initialTasks.length) return [];
-    return saveDatabaseTasks(identity, initialTasks);
+    return databaseTasks;
   } catch (error) {
     console.warn(LOG_TAG, "Could not load database tasks. Falling back to pasted tasks.", error);
     return initialTasks;
@@ -201,6 +198,27 @@ function prepareTemplate(list: HTMLElement): HTMLElement {
   return clone;
 }
 
+function createStatusElement(root: HTMLElement): HTMLElement {
+  const status = document.createElement("div");
+  status.setAttribute("flowappz-todo-status", "true");
+  status.style.display = "none";
+  status.style.marginTop = "10px";
+  status.style.fontSize = "13px";
+  status.style.opacity = "0.68";
+  root.appendChild(status);
+  return status;
+}
+
+function setStatus(
+  status: HTMLElement,
+  message: string,
+  tone: "info" | "error" = "info",
+) {
+  status.innerText = message;
+  status.style.display = message ? "block" : "none";
+  status.style.color = tone === "error" ? "#dc2626" : "inherit";
+}
+
 async function renderTodo(root: HTMLElement) {
   const form = root.querySelector<HTMLFormElement>(`#${SELECTORS.form}`);
   const input = root.querySelector<HTMLInputElement>(`#${SELECTORS.input}`);
@@ -219,8 +237,10 @@ async function renderTodo(root: HTMLElement) {
   const list = listElement;
   const options = readOptions(root);
   const template = prepareTemplate(list);
-  let tasks = readInitialTasks(list);
+  const status = createStatusElement(root);
+  let tasks: TodoTask[] = [];
   let saveRequestId = 0;
+  let pendingSaves = 0;
 
   if (options.theme === "dark")
     root.classList.add("flowappz-todo-runtime-dark");
@@ -229,15 +249,23 @@ async function renderTodo(root: HTMLElement) {
   function commit(nextTasks: TodoTask[]) {
     const requestId = ++saveRequestId;
     tasks = nextTasks.map((task, index) => ({ ...task, position: index }));
+    pendingSaves += 1;
+    setStatus(status, "Saving tasks...");
     paint();
 
     saveDatabaseTasks(identity, tasks)
       .then((savedTasks) => {
+        pendingSaves = Math.max(0, pendingSaves - 1);
         if (requestId !== saveRequestId) return;
         tasks = savedTasks;
+        setStatus(status, pendingSaves ? "Saving tasks..." : "");
         paint();
       })
-      .catch((error) => console.warn(LOG_TAG, "Could not save database tasks", error));
+      .catch((error) => {
+        pendingSaves = Math.max(0, pendingSaves - 1);
+        console.warn(LOG_TAG, "Could not save database tasks", error);
+        setStatus(status, "Could not save tasks. Please try again.", "error");
+      });
   }
 
   function paint() {
@@ -325,8 +353,15 @@ async function renderTodo(root: HTMLElement) {
     input.value = "";
   });
 
+  setStatus(status, "Loading tasks...");
   paint();
-  tasks = await loadTasks(identity, list);
+  try {
+    tasks = await loadTasks(identity, list);
+    setStatus(status, "");
+  } catch (error) {
+    console.warn(LOG_TAG, "Could not load database tasks", error);
+    setStatus(status, "Could not load saved tasks. Showing pasted tasks.", "error");
+  }
   paint();
 }
 
@@ -346,6 +381,7 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
 
 
 

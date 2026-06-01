@@ -26,7 +26,6 @@ export async function upsertTodoSettings(settings: TodoSettingsInput) {
         showCompleted: settings.showCompleted,
         persistInBrowser: settings.persistInBrowser,
         theme: settings.theme,
-        initialTasks: settings.initialTasks,
         updatedAt: new Date(),
       },
     })

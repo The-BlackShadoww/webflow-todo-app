@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { TodoSettings } from "@/types";
+import { DEFAULT_LIST_ID } from "@/constants/todo";
+import type { TodoSettings, TodoTask } from "@/types";
+import { normalizeTasksFromApi } from "@/utils/tasks";
+
+export { DEFAULT_LIST_ID };
 
 const API_CLIENT = axios.create({
   baseURL: import.meta.env.VITE_DATA_CLIENT_URL,
@@ -41,4 +45,32 @@ export async function saveTodoSettings(siteId: string, settings: TodoSettings) {
     settings,
   });
   return data.data as TodoSettings;
+}
+
+export async function getTodoTasks(
+  siteId: string,
+  listId: string = DEFAULT_LIST_ID,
+) {
+  const { data } = await API_CLIENT.get("/todo/tasks", {
+    params: { siteId, listId },
+  });
+  return normalizeTasksFromApi(data.data);
+}
+
+export async function replaceTodoTasks(
+  siteId: string,
+  tasks: TodoTask[],
+  listId: string = DEFAULT_LIST_ID,
+) {
+  const { data } = await API_CLIENT.put("/todo/tasks", {
+    siteId,
+    listId,
+    tasks: tasks.map((task, index) => ({
+      taskId: task.id,
+      text: task.text,
+      completed: task.completed,
+      position: index,
+    })),
+  });
+  return normalizeTasksFromApi(data.data);
 }

@@ -1,3 +1,4 @@
+import { DEFAULT_LIST_ID } from "@/constants/todo";
 import type { TodoSettings, TodoTask } from "@/types";
 
 type XscpTextNode = {
@@ -211,10 +212,12 @@ function createTaskNodes(
   );
 }
 
-export function buildTodoWebflowTemplate(settings: TodoSettings) {
-  const todoListId = crypto.randomUUID();
-  const tasks = settings.initialTasks.length
-    ? settings.initialTasks
+export function buildTodoWebflowTemplate(
+  settings: TodoSettings,
+  tasks: TodoTask[],
+) {
+  const templateTasks = tasks.length
+    ? tasks
     : [{ id: "task-empty", text: "New task", completed: false }];
 
   const builder = new TemplateBuilder();
@@ -287,7 +290,7 @@ export function buildTodoWebflowTemplate(settings: TodoSettings) {
     attr: { id: "flowappz-todo-form" },
   });
 
-  const taskItemIds = tasks.map((task, index) =>
+  const taskItemIds = templateTasks.map((task, index) =>
     createTaskNodes(builder, classIds, task, index),
   );
   const listId = builder.addBlock("motion.div", classIds.list, taskItemIds, {
@@ -304,7 +307,7 @@ export function buildTodoWebflowTemplate(settings: TodoSettings) {
     {
       attr: { id: "flowappz-todo-root" },
       xattr: [
-        { name: "flowappz-todo-list-id", value: todoListId },
+        { name: "flowappz-todo-list-id", value: DEFAULT_LIST_ID },
         { name: "flowappz-todo-theme", value: settings.theme },
         { name: "flowappz-todo-allow-add", value: String(settings.allowAdd) },
         { name: "flowappz-todo-allow-edit", value: String(settings.allowEdit) },

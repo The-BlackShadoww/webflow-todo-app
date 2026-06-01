@@ -6,9 +6,8 @@ This app is the published-site runtime for the todo element copied by the Webflo
 
 1. Finds pasted todo elements by `#flowappz-todo-root`.
 2. Reads behavior options from `flowappz-todo-*` attributes.
-3. Reads starter tasks from the pasted Webflow list markup.
+3. Loads and saves tasks via the backend `/api/todo/tasks` endpoint.
 4. Handles add, complete, edit, and delete interactions.
-5. Saves each visitor's list to `localStorage` when persistence is enabled.
 
 ## Main files
 

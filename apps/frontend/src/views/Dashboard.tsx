@@ -2,10 +2,8 @@ import { CheckCircle2, ClipboardList } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 
 export default function Dashboard() {
-  const { site, settings } = useAppContext();
-  const completed = settings.initialTasks.filter(
-    (task) => task.completed,
-  ).length;
+  const { site, tasks } = useAppContext();
+  const completed = tasks.filter((task) => task.completed).length;
 
   return (
     <section className="flex h-full flex-col gap-4 overflow-y-auto px-5 py-5">
@@ -34,7 +32,7 @@ export default function Dashboard() {
           <CheckCircle2 className="mb-3 h-5 w-5 text-[#4ade80]" />
           <p className="text-[12px] text-white/45">Starter tasks</p>
           <p className="mt-1 text-[14px] font-semibold text-white">
-            {completed}/{settings.initialTasks.length} completed
+            {completed}/{tasks.length} completed
           </p>
         </div>
       </div>

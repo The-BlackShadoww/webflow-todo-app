@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { isAxiosError } from "axios";
 import { Sidebar } from "@/components/Sidebar";
 import { AppContext, defaultSettings } from "@/contexts/AppContext";
 import * as apiService from "@/services/apiService";
-import type { TodoSettings, WebflowSite } from "@/types";
+import type { TodoSettings, TodoTask, WebflowSite } from "@/types";
 import AuthScreen from "@/views/AuthScreen";
 import CopyElementView from "@/views/CopyElementView";
 import Dashboard from "@/views/Dashboard";
@@ -13,15 +13,22 @@ import TasksView from "@/views/TasksView";
 
 type ViewId = "dashboard" | "tasks" | "settings" | "copy";
 
-function normalizeSettings(remote: TodoSettings | null): TodoSettings {
+function pickSettings(remote: Record<string, unknown> | null): TodoSettings {
   if (!remote) return defaultSettings;
+
+  const theme = remote.theme;
+  const validTheme =
+    theme === "light" || theme === "dark" || theme === "system"
+      ? theme
+      : defaultSettings.theme;
+
   return {
-    ...defaultSettings,
-    ...remote,
-    initialTasks: Array.isArray(remote.initialTasks)
-      ? remote.initialTasks
-      : defaultSettings.initialTasks,
-    theme: remote.theme || defaultSettings.theme,
+    allowAdd: remote.allowAdd !== false,
+    allowEdit: remote.allowEdit !== false,
+    allowDelete: remote.allowDelete !== false,
+    showCompleted: remote.showCompleted !== false,
+    persistInBrowser: remote.persistInBrowser !== false,
+    theme: validTheme,
   };
 }
 
@@ -31,6 +38,7 @@ function App() {
   const [activeId, setActiveId] = useState<ViewId>("dashboard");
   const [site, setSite] = useState<WebflowSite | null>(null);
   const [settings, setSettings] = useState<TodoSettings>(defaultSettings);
+  const [tasks, setTasks] = useState<TodoTask[]>([]);
 
   useEffect(() => {
     window._myWebflow = webflow;
@@ -47,13 +55,15 @@ function App() {
           return;
         }
 
-        const [siteData, remoteSettings] = await Promise.all([
+        const [siteData, remoteSettings, remoteTasks] = await Promise.all([
           apiService.getSiteByWebflowSiteId(siteId),
           apiService.getTodoSettings(siteId),
+          apiService.getTodoTasks(siteId),
         ]);
 
         setSite(siteData);
-        setSettings(normalizeSettings(remoteSettings));
+        setSettings(pickSettings(remoteSettings as Record<string, unknown> | null));
+        setTasks(remoteTasks);
 
         apiService.registerAppScripts(siteId).catch((error) => {
           console.warn("Todo CDN script is not registered yet.", error);
@@ -75,12 +85,25 @@ function App() {
     setupApp();
   }, []);
 
-  const saveSettings = async (nextSettings: TodoSettings) => {
-    setSettings(nextSettings);
-    if (!site?.siteId) return;
-    const saved = await apiService.saveTodoSettings(site.siteId, nextSettings);
-    setSettings(normalizeSettings(saved));
-  };
+  const saveSettings = useCallback(
+    async (nextSettings: TodoSettings) => {
+      setSettings(nextSettings);
+      if (!site?.siteId) return;
+      const saved = await apiService.saveTodoSettings(site.siteId, nextSettings);
+      setSettings(pickSettings(saved as Record<string, unknown>));
+    },
+    [site?.siteId],
+  );
+
+  const saveTasks = useCallback(
+    async (nextTasks: TodoTask[]) => {
+      setTasks(nextTasks);
+      if (!site?.siteId) return;
+      const saved = await apiService.replaceTodoTasks(site.siteId, nextTasks);
+      setTasks(saved);
+    },
+    [site?.siteId],
+  );
 
   const handleLogout = async () => {
     try {
@@ -92,8 +115,16 @@ function App() {
   };
 
   const contextValue = useMemo(
-    () => ({ site, settings, setSettings, saveSettings }),
-    [site, settings],
+    () => ({
+      site,
+      settings,
+      setSettings,
+      saveSettings,
+      tasks,
+      setTasks,
+      saveTasks,
+    }),
+    [site, settings, saveSettings, tasks, saveTasks],
   );
 
   if (loading) return <LoadingScreen message="Checking Webflow site..." />;

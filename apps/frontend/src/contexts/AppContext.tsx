@@ -1,11 +1,14 @@
 import { createContext, useContext } from "react";
-import type { TodoSettings, WebflowSite } from "@/types";
+import type { TodoSettings, TodoTask, WebflowSite } from "@/types";
 
 export type AppContextValue = {
   site: WebflowSite | null;
   settings: TodoSettings;
   setSettings: (settings: TodoSettings) => void;
   saveSettings: (settings: TodoSettings) => Promise<void>;
+  tasks: TodoTask[];
+  setTasks: (tasks: TodoTask[]) => void;
+  saveTasks: (tasks: TodoTask[]) => Promise<void>;
 };
 
 export const defaultSettings: TodoSettings = {
@@ -15,11 +18,6 @@ export const defaultSettings: TodoSettings = {
   showCompleted: true,
   persistInBrowser: true,
   theme: "system",
-  initialTasks: [
-    { id: "task-1", text: "Plan the Webflow page", completed: false },
-    { id: "task-2", text: "Paste the todo element", completed: false },
-    { id: "task-3", text: "Publish and test", completed: false },
-  ],
 };
 
 export const AppContext = createContext<AppContextValue | null>(null);
