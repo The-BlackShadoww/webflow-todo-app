@@ -39,9 +39,30 @@ function App() {
   const [site, setSite] = useState<WebflowSite | null>(null);
   const [settings, setSettings] = useState<TodoSettings>(defaultSettings);
   const [tasks, setTasks] = useState<TodoTask[]>([]);
+  const [selectedElement, setSelectedElement] = useState<AnyElement | null>(null);
 
   useEffect(() => {
     window._myWebflow = webflow;
+
+    const unsubscribe = webflow.subscribe("selectedelement", async (element) => {
+      console.log("Selected element changed:", element);
+      if (element && element.customAttributes) {
+        try {
+          const listId = await element.getCustomAttribute("flowappz-todo-list-id");
+          if (listId) {
+            setSelectedElement(element);
+            return;
+          }
+        } catch (error) {
+          console.error("Failed to read flowappz-todo-list-id custom attribute:", error);
+        }
+      }
+      setSelectedElement(null);
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -123,8 +144,9 @@ function App() {
       tasks,
       setTasks,
       saveTasks,
+      selectedElement,
     }),
-    [site, settings, saveSettings, tasks, saveTasks],
+    [site, settings, saveSettings, tasks, saveTasks, selectedElement],
   );
 
   if (loading) return <LoadingScreen message="Checking Webflow site..." />;

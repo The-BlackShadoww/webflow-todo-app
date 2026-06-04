@@ -9,6 +9,7 @@ export type AppContextValue = {
   tasks: TodoTask[];
   setTasks: (tasks: TodoTask[]) => void;
   saveTasks: (tasks: TodoTask[]) => Promise<void>;
+  selectedElement: AnyElement | null;
 };
 
 export const defaultSettings: TodoSettings = {
