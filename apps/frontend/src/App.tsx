@@ -50,6 +50,32 @@ function App() {
         try {
           const listId = await element.getCustomAttribute("flowappz-todo-list-id");
           if (listId) {
+            // Task 1 of Step 3: Fetch existing settings attributes from canvas
+            const [
+              allowAdd,
+              allowEdit,
+              allowDelete,
+              showCompleted,
+              persist,
+              theme,
+            ] = await Promise.all([
+              element.getCustomAttribute("flowappz-todo-allow-add"),
+              element.getCustomAttribute("flowappz-todo-allow-edit"),
+              element.getCustomAttribute("flowappz-todo-allow-delete"),
+              element.getCustomAttribute("flowappz-todo-show-completed"),
+              element.getCustomAttribute("flowappz-todo-persist"),
+              element.getCustomAttribute("flowappz-todo-theme"),
+            ]);
+
+            console.log("Fetched attributes from canvas:", {
+              allowAdd,
+              allowEdit,
+              allowDelete,
+              showCompleted,
+              persist,
+              theme,
+            });
+
             setSelectedElement(element);
             return;
           }
