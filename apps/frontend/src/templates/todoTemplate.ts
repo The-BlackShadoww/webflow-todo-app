@@ -184,6 +184,7 @@ function createTaskNodes(
   },
   task: TodoTask,
   index: number,
+  allowDelete: boolean,
 ): string {
   const checkboxId = builder.addInput(
     classIds.checkbox,
@@ -194,14 +195,22 @@ function createTaskNodes(
     [{ name: "flowappz-todo-checkbox", value: "true" }],
   );
   const textId = builder.addTextBlock("div", classIds.text, task.text);
-  const deleteId = builder.addButton(classIds.deleteButton, "Delete", {
-    type: "button",
-  });
+
+  // Only include the delete button node when allowDelete is true.
+  // The Designer canvas never runs JS, so the CDN script cannot hide it
+  // at design-time — we must simply not paste the node at all.
+  const rowChildren: string[] = [checkboxId, textId];
+  if (allowDelete) {
+    const deleteId = builder.addButton(classIds.deleteButton, "Delete", {
+      type: "button",
+    });
+    rowChildren.push(deleteId);
+  }
 
   return builder.addBlock(
     "div",
     classIds.item,
-    [checkboxId, textId, deleteId],
+    rowChildren,
     {
       attr: { id: index === 0 ? "flowappz-todo-item-template" : "" },
       xattr: [
@@ -276,22 +285,28 @@ export function buildTodoWebflowTemplate(
   const titleId = builder.addTextBlock("h2", classIds.title, "Todo List");
   const headerId = builder.addBlock("motion.div", classIds.header, [titleId], {});
 
-  const inputId = builder.addInput(classIds.input, {
-    id: "flowappz-todo-input",
-    name: "todo",
-    placeholder: "Add a task",
-    type: "text",
-  });
-  const addButtonId = builder.addButton(classIds.addButton, "Add", {
-    id: "flowappz-todo-add-button",
-    type: "submit",
-  });
-  const formId = builder.addBlock("form", classIds.form, [inputId, addButtonId], {
-    attr: { id: "flowappz-todo-form" },
-  });
+  // Only build the add-task form node when allowAdd is true.
+  // On the canvas there is no JS to toggle visibility, so we omit
+  // the entire form subtree from the clipboard payload.
+  let formId: string | null = null;
+  if (settings.allowAdd) {
+    const inputId = builder.addInput(classIds.input, {
+      id: "flowappz-todo-input",
+      name: "todo",
+      placeholder: "Add a task",
+      type: "text",
+    });
+    const addButtonId = builder.addButton(classIds.addButton, "Add", {
+      id: "flowappz-todo-add-button",
+      type: "submit",
+    });
+    formId = builder.addBlock("form", classIds.form, [inputId, addButtonId], {
+      attr: { id: "flowappz-todo-form" },
+    });
+  }
 
   const taskItemIds = templateTasks.map((task, index) =>
-    createTaskNodes(builder, classIds, task, index),
+    createTaskNodes(builder, classIds, task, index, settings.allowDelete),
   );
   const listId = builder.addBlock("motion.div", classIds.list, taskItemIds, {
     attr: { id: "flowappz-todo-list" },
@@ -300,10 +315,15 @@ export function buildTodoWebflowTemplate(
     attr: { id: "flowappz-todo-empty" },
   });
 
+  // Build root children array — exclude formId when it is null (allowAdd: false)
+  const rootChildren: string[] = [headerId];
+  if (formId) rootChildren.push(formId);
+  rootChildren.push(listId, emptyId);
+
   const rootId = builder.addBlock(
     "motion.div",
     classIds.root,
-    [headerId, formId, listId, emptyId],
+    rootChildren,
     {
       attr: { id: "flowappz-todo-root" },
       xattr: [
